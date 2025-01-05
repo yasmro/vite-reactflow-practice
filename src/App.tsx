@@ -10,6 +10,7 @@ import {
   Node,
   ReactFlow,
   ReactFlowProvider,
+  reconnectEdge,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
@@ -73,6 +74,12 @@ function App() {
     },
     [selectedHandles, setEdges, resetHandles]
   );
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) =>
+      // TODO: 複数本のreconnectの実装
+      setEdges((els) => reconnectEdge(oldEdge, newConnection, els)),
+    [setEdges]
+  );
 
   const onPaneClick = useCallback(() => {
     resetHandles(); // ノード外クリックでリセット
@@ -112,6 +119,8 @@ function App() {
           onPaneClick={onPaneClick}
           nodeTypes={nodeTypes}
           elevateEdgesOnSelect
+          edgesReconnectable={true}
+          onReconnect={onReconnect}
           fitView
           className="bg-teal-50"
           snapToGrid={true}
