@@ -85,13 +85,13 @@ export const getLayoutedNodes = async (nodes: Node[], edges: Edge[]) => {
 
 export default function useLayoutNodes() {
   const nodesInitialized = useNodesInitialized();
-  const { getNodes, getEdges, setNodes, fitView } = useReactFlow<ElkNode>();
+  const { getNodes, getEdges, setNodes, fitView } = useReactFlow();
 
   useEffect(() => {
     if (nodesInitialized) {
       const layoutNodes = async () => {
         const layoutedNodes = await getLayoutedNodes(
-          getNodes() as ElkNode[],
+          getNodes() as Node[],
           getEdges()
         );
 
