@@ -1,10 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
   :root {
     --radius: 0.5rem;
   }
+
+  * {
+    font-feature-settings: "palt", "cv02", "cv03", "cv04", "cv08";
+    font-variation-settings: "opsz"26.89;
+    -webkit-font-smoothing: antialiased;
+  }
+
 }
 
 div.customHandle {

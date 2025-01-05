@@ -4,7 +4,9 @@ import {
   Position,
   useConnection,
   useInternalNode,
+  useStore,
 } from "@xyflow/react";
+import clsx from "clsx";
 import { MouseEvent, useCallback, useEffect, useRef } from "react";
 
 type MessageNodeType = {
@@ -12,10 +14,12 @@ type MessageNodeType = {
 };
 
 const AREA_ACTIONS = [1, 2, 3, 4, 5];
+const zoomSelector = (s: { transform: number[] }) => s.transform[2] < 1.2;
 
 export default function MessageNode({ id }: MessageNodeType) {
   const connection = useConnection();
   const node = useInternalNode(id);
+  const showPlaceholder = useStore(zoomSelector);
   const isTarget = connection.inProgress && connection.fromNode.id !== id;
 
   const { selectedHandles, addHandle, removeHandle, resetHandles } =
@@ -59,36 +63,44 @@ export default function MessageNode({ id }: MessageNodeType) {
   return (
     <div
       ref={nodeRef}
-      className={
-        "px-1 py-3 min-w-[150px] rounded-sm bg-white border bg-gradient-to-b from-white to-blue-100  " +
-        (connection.inProgress && isTarget
-          ? "border-blue-300 hover:border-blue-700  hover:shadow-lg hover:shadow-blue-200 hover:to-blue-100   "
-          : "") +
-        (node?.selected || node?.dragging
-          ? "border-blue-700 shadow-lg shadow-blue-200 to-blue-100  "
-          : "border-slate-300 shadow-sm shadow-slate-200 to-white ")
-      }
+      className={clsx(
+        "relative",
+        "px-1 py-3",
+        "min-w-[150px] rounded-sm",
+        "bg-gradient-to-b from-white to-blue-100",
+        "transition-shadow duration-200",
+        connection.inProgress &&
+          isTarget &&
+          "border border-blue-300 hover:border-blue-700  hover:shadow-lg hover:shadow-blue-200 hover:to-blue-100",
+        node?.selected || node?.dragging
+          ? "border border-blue-700 shadow-lg shadow-blue-200 to-blue-100"
+          : "border border-slate-300 shadow-sm shadow-slate-200 to-white"
+      )}
     >
       <div>
-        <p className="text-sm mb-1">LINE Message Node</p>
+        <p className="mb-1 font-semibold text-[10px]">
+          LINE Message Node #{id}
+        </p>
         {/* If handles are conditionally rendered and not present initially, you need to update the node internals https://reactflow.dev/docs/api/hooks/use-update-node-internals/ */}
         {/* In this case we don't need to use useUpdateNodeInternals, since !isConnecting is true at the beginning and all handles are rendered initially. */}
-        <div className="flex flex-col gap-1">
-          {AREA_ACTIONS.map((action) => {
+        <div className="flex flex-col gap-0.5">
+          {AREA_ACTIONS.map((action, index) => {
             const handleId = `${id}-${action}`;
             return (
               <div
                 key={handleId}
-                className={
-                  "relative px-1 py-0.5  text-white " +
-                  (connection?.fromHandle?.id === handleId ||
-                  selectedHandles.includes(handleId)
-                    ? "bg-blue-600 "
-                    : "bg-slate-900 ")
-                }
+                className={clsx(
+                  "relative px-1 py-0.25 text-white",
+                  connection?.fromHandle?.id === handleId ||
+                    selectedHandles.includes(handleId)
+                    ? "bg-blue-600"
+                    : "bg-slate-900",
+                  index === 0 && "rounded-t-sm",
+                  index === AREA_ACTIONS.length - 1 && "rounded-b-sm"
+                )}
                 onClick={(e) => handleHandleClick(e, handleId)}
               >
-                <p>Action #{handleId}</p>
+                <p className="font-semibold text-[10px]">Action #{handleId}</p>
                 <Handle
                   className="customHandle"
                   id={handleId}
@@ -102,7 +114,7 @@ export default function MessageNode({ id }: MessageNodeType) {
 
         {/* We want to disable the target handle, if the connection was started from this node */}
         {(!connection.inProgress || isTarget) && (
-          <div className=" w-100 h-100 bg-orange-200">
+          <div className=" w-100 h-100">
             <Handle
               className="customHandle w-100 h-100"
               position={Position.Left}
@@ -112,6 +124,13 @@ export default function MessageNode({ id }: MessageNodeType) {
           </div>
         )}
       </div>
+      {showPlaceholder && (
+        <div className="absolute top-0 left-0 flex flex-col w-full h-full text-center bg-white/90 backdrop-blur-sm">
+          <p className="my-auto text-xl font-semibold">
+            LINE Message Node #{id}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
