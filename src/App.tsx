@@ -1,6 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
-  addEdge,
   Background,
   BackgroundVariant,
   Connection,
@@ -9,6 +8,7 @@ import {
   MiniMap,
   Node,
   ReactFlow,
+  ReactFlowProvider,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
@@ -16,6 +16,7 @@ import { Button } from "./components/ui/button";
 
 import "@xyflow/react/dist/style.css";
 import MessageNode from "./components/nodes/message-node";
+import { useHandleStore } from "./stores/handleStore";
 
 let id = 3;
 const getId = () => `${id++}`;
@@ -26,7 +27,6 @@ const nodeTypes = {
 
 function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([] as Node[]);
-
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
 
   const edgesWithAnimated = useMemo(() => {
@@ -38,20 +38,41 @@ function App() {
     });
   }, [edges]);
 
+  const { selectedHandles, resetHandles } = useHandleStore();
+
   const onConnect = useCallback(
     (params: Connection) => {
-      console.log(params);
       setEdges((eds) => {
+        // 選択されているハンドルに基づいて複数エッジを作成
+        const newEdges = [...selectedHandles, params.sourceHandle].map(
+          (handleId) => ({
+            id: `${params.source}-${handleId}-${params.target}`,
+            source: params.source,
+            sourceHandle: handleId,
+            target: params.target,
+            type: "smoothstep",
+          })
+        );
+
+        // 接続元のエッジをフィルタリングして、新しいエッジで上書き
         const distinctedEdges = eds.filter(
           (edge) =>
             edge.source !== params.source ||
-            edge.sourceHandle !== params.sourceHandle
+            !selectedHandles.includes(edge.sourceHandle || "")
         );
-        return addEdge({ ...params, type: "smoothstep" }, distinctedEdges);
+
+        return [...distinctedEdges, ...newEdges];
       });
+
+      // 接続後にハンドル選択状態をリセット
+      resetHandles();
     },
-    [setEdges]
+    [selectedHandles, setEdges, resetHandles]
   );
+
+  const onPaneClick = useCallback(() => {
+    resetHandles(); // ノード外クリックでリセット
+  }, [resetHandles]);
 
   const handleAddMessageNode = () => {
     const id = getId();
@@ -69,15 +90,17 @@ function App() {
   };
 
   return (
-    <>
+    <ReactFlowProvider>
       <div style={{ height: "100vh", width: "100vw" }}>
         <Button onClick={handleAddMessageNode}>Add Node</Button>
+
         <ReactFlow
           nodes={nodes}
           edges={edgesWithAnimated}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onPaneClick={onPaneClick}
           nodeTypes={nodeTypes}
           elevateEdgesOnSelect
           fitView
@@ -95,7 +118,7 @@ function App() {
           <Controls />
         </ReactFlow>
       </div>
-    </>
+    </ReactFlowProvider>
   );
 }
 
