@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import {
+  addEdge,
   Background,
   BackgroundVariant,
   Connection,
@@ -18,7 +19,7 @@ import "@xyflow/react/dist/style.css";
 import MessageNode from "./components/nodes/message-node";
 import { useHandleStore } from "./stores/handleStore";
 
-let id = 3;
+let id = 1;
 const getId = () => `${id++}`;
 
 const nodeTypes = {
@@ -43,25 +44,28 @@ function App() {
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => {
-        // 選択されているハンドルに基づいて複数エッジを作成
-        const newEdges = [...selectedHandles, params.sourceHandle].map(
-          (handleId) => ({
+        if (selectedHandles.length > 0) {
+          // CMDキーで1個以上選択されている場合
+          // 選択されているハンドルに基づいて複数エッジを作成
+          const newEdges = selectedHandles.map((handleId) => ({
             id: `${params.source}-${handleId}-${params.target}`,
             source: params.source,
             sourceHandle: handleId,
             target: params.target,
             type: "smoothstep",
-          })
-        );
-
-        // 接続元のエッジをフィルタリングして、新しいエッジで上書き
-        const distinctedEdges = eds.filter(
-          (edge) =>
-            edge.source !== params.source ||
-            !selectedHandles.includes(edge.sourceHandle || "")
-        );
-
-        return [...distinctedEdges, ...newEdges];
+          }));
+          // FIXME: 接続元からのエッジは1つしか設定できないので、すでにある場合は上書きする処理を書く。
+          return [...eds, ...newEdges];
+        } else {
+          // CMDキーで1つも選択されていない場合（単純なハンドルからのエッジ作成の場合）
+          // 接続元からのエッジは1つしか設定できないので、すでにある場合は上書きする
+          const distinctedEdges = eds.filter(
+            (edge) =>
+              edge.source !== params.source ||
+              edge.sourceHandle !== params.sourceHandle
+          );
+          return addEdge({ ...params, type: "smoothstep" }, distinctedEdges);
+        }
       });
 
       // 接続後にハンドル選択状態をリセット
@@ -91,8 +95,13 @@ function App() {
 
   return (
     <ReactFlowProvider>
-      <div style={{ height: "100vh", width: "100vw" }}>
-        <Button onClick={handleAddMessageNode}>Add Node</Button>
+      <div style={{ height: "95vh", width: "95vw" }}>
+        <div className="flex justify-between">
+          <Button onClick={handleAddMessageNode}>Add Node</Button>
+          <p>
+            CMDキー（Ctrlキー）で複数のハンドルを選択し、他のノードへまとめて引くことができます
+          </p>
+        </div>
 
         <ReactFlow
           nodes={nodes}

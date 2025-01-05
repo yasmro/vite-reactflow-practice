@@ -29,10 +29,12 @@ export default function MessageNode({ id }: MessageNodeType) {
     handleId: string
   ) => {
     event.stopPropagation(); // 他のクリックイベントとの干渉を防ぐ
-    if (selectedHandles.includes(handleId)) {
-      removeHandle(handleId);
-    } else {
-      addHandle(handleId);
+    if (event.metaKey || event.ctrlKey) {
+      if (selectedHandles.includes(handleId)) {
+        removeHandle(handleId);
+      } else {
+        addHandle(handleId);
+      }
     }
   };
 
